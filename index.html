@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pdf-Highlighter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/pdf-lib"></script>
+    <script src="https://unpkg.com/pdfjs-dist/build/pdf.js" type="text/javascript"></script>
+    <script src="pdfhighlight.js"></script>
+  </head>
+
+  <body>
+    <header>
+      <p>PDF Highlighter</p>
+    </header>
+
+    <main>
+      <form action="javascript:generateOutputPdf()">
+        <label>Input file:
+          <input id="file" type="file" size="50" accept="application/pdf">
+        </label>
+
+        <label>Search term: </label>
+        <input type="search" id="searchTerm" value="the">
+
+        <label>Color: </label><input type="color" value="#ffff00" id="color">
+
+        <label>Highlight </label>
+        <input type="checkbox" id="highlightRow" checked="checked">full row
+
+        <button id="generate">Generate</button>
+      </form>
+      <a id="link" href="about:blank">Download output pdf</a>
+
+      <iframe id="inputPdf" style="width: 30%; height: 600px;" src="about:blank"></iframe>
+      <iframe id="outputPdf" style="width: 30%; height: 600px;" src="about:blank"></iframe>
+
+
+      
+    </main>
+
+    <footer>
+      <p>For support and fixes please contact ...</p>
+      <p>2023 by blomi</p>
+    </footer>
+  </body>
+</html>

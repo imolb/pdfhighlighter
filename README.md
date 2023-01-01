@@ -1,6 +1,4 @@
-# pdfhighlighter
-Highlights words/rows in pdf documents
-
-Highlights provided words/rows in a pdf document.
+# PDF Highlighter
+Highlights words/rows containing provided words in a PDF document.
 
 The tool is mainly designed for schedule of competition to highlight athletes of a specific team.

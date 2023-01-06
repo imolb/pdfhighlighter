@@ -18,6 +18,7 @@ jobs:
       with:
         root: .
         log_level: INFO
+        log-file: reports/html5validator.log
       continue-on-error: true
         
     - name: Upload analysis results to GitHub

@@ -58,46 +58,46 @@ async function readUploadFile (inputFile) {
 }
 
 // Set cookie value
-function setCookie(cname, cvalue, exdays) {
-  const d = new Date();
-  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-  let expires = "expires="+ d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/; SameSite=Lax";
+function setCookie (cname, cvalue, exdays) {
+  const d = new Date()
+  d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000))
+  const expires = 'expires=' + d.toUTCString()
+  document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/; SameSite=Lax'
 }
 
 // Read cookie value
-function getCookie(cname) {
-  let name = cname + "="
-  let decodedCookie = decodeURIComponent(document.cookie)
-    let ca = decodedCookie.split(';');
-    for(let i = 0; i <ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) == ' ') {
-        c = c.substring(1);
-      }
-      if (c.indexOf(name) == 0) {
-        return c.substring(name.length, c.length)
-      }
+function getCookie (cname) {
+  const name = cname + '='
+  const decodedCookie = decodeURIComponent(document.cookie)
+  const ca = decodedCookie.split(';')
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+    while (c.charAt(0) === ' ') {
+      c = c.substring(1)
     }
+    if (c.indexOf(name) === 0) {
+      return c.substring(name.length, c.length)
+    }
+  }
   return null
 }
 
 // Reset all GUI elements (e.g. after failure)
-function guiReset() {
+function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
 }
 
 // Deactivate GUI elements while processing
-function guiProcessing() {
+function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
 }
 
 // Activate and show GUI elements when processing is done
-function guiProcessed() {
+function guiProcessed () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:visible')
@@ -140,7 +140,7 @@ async function generateOutputPdf () {
 
   // Load the document via PDFlib to modify the document
   const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
-  
+
   // Load the document again via PDF.js which supports search features within the PDF
   const loadingTask = await pdfjsLib.getDocument(fileContent)
 
@@ -153,7 +153,7 @@ async function generateOutputPdf () {
   // show generated PDF in right frame
   // TODO: 2x outputPdfDoc.save bzw. saveAsBase64; avoid one?
   const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true })
-  const iframe = document.getElementById('outputPdf');
+  const iframe = document.getElementById('outputPdf')
   iframe.src = pdfDataUri
 
   // Update download link
@@ -164,11 +164,11 @@ async function generateOutputPdf () {
   binaryData.push(downloadPdf)
   link.href = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
 
-  guiProcessed();
+  guiProcessed()
 }
 
-function initializePage() {
-  guiReset();
+function initializePage () {
+  guiReset()
 
   const searchTerm = getCookie('searchTerm')
   const highlightRow = getCookie('highlightRow')
@@ -179,16 +179,18 @@ function initializePage() {
   }
 
   if (highlightRow) {
-    if (highlightRow == "true") {
-      document.getElementById('highlightRow').checked = true;
+    if (highlightRow === 'true') {
+      document.getElementById('highlightRow').checked = true
     } else {
-      document.getElementById('highlightRow').checked = false;
+      document.getElementById('highlightRow').checked = false
     }
   }
 
   if (rgbValue) {
     document.getElementById('color').value = rgbValue
   }
+
+  document.getElementById('form').addEventListener('submit', generateOutputPdf)
 }
 
-window.addEventListener("load", initializePage);
+window.addEventListener('load', initializePage)

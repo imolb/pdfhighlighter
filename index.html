@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="description" content="PDF Highlighter: Online app to highlight words or complete rows in a PDF document">
-    <meta name="keywords" content="highlight pdf color words"
+    <meta name="keywords" content="highlight pdf color words">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/pdf-lib"></script>
@@ -34,7 +34,7 @@
       }
 
       header > p.subtitle {
-        fons-size: 0.7rem;
+        font-size: 0.7rem;
         font-family:sans-serif;
         color: rgb(90 90 90);
       }
@@ -43,10 +43,13 @@
         background-color: yellow;
       }
 
-      form > div {
+      form > div.formParameter {
+        min-height: 2.5rem;
+      }
+
+      form > div.formParameter > div {
         min-width: 9rem;
         float: left;
-        min-height: 2rem;
       }
 
       #color {
@@ -78,41 +81,41 @@
 
   <body>
     <header>
-      <p class="title"><img src="icon/favicon-32x32.png"/> PDF <span class="highlight">High</span>lighter</p>
+      <p class="title"><img src="icon/favicon-32x32.png" alt="Logo"> PDF <span class="highlight">High</span>lighter</p>
       <p class="subtitle">Online app to highlight words or complete rows in a PDF document</p>
     </header>
 
     <main>
-      <form action="javascript:generateOutputPdf()">
-        <p>
+      <form id="form" action="javascript:generateOutputPdf()">
+        <div class="formParameter">
           <div><label>Input file:</label></div>
           <input id="file" type="file" size="50" accept="application/pdf">
-        </p>
+        </div>
 
-        <p>
+        <div class="formParameter">
           <div><label>Search term: </label></div>
           <input type="search" id="searchTerm" value="the">
-        </p>
+        </div>
 
-        <p>
+        <div class="formParameter">
           <div><label>Color: </label></div>
           <input type="color" value="#ffff00" id="color">
-        </p>
+        </div>
 
-        <p>
+        <div class="formParameter">
           <div><label>Highlight </label></div>
           <input type="checkbox" id="highlightRow" checked="checked">full row, instead of textbox only
-        </p>
+        </div>
 
-        <p>
-          <div></div>
-          <button id="generate">Generate</button>
-        </p>
+        <div class="formParameter">
+          <div>Start to</div>
+          <button id="generate">generate</button>
+        </div>
 
-        <p>
+        <div class="formParameter">
           <div>Download</div>
           <a id="link" href="about:blank" class="inactive">highlighted PDF</a>
-        </p>
+        </div>
       </form>
       <p>
 

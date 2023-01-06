@@ -1,0 +1,2 @@
+- name: HTML5 Validator
+  uses: Cyb3r-Jak3/html5validator-action@master

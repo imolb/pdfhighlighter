@@ -57,16 +57,33 @@ async function readUploadFile (inputFile) {
   })
 }
 
+function guiReset() {
+  document.getElementById('generate').removeAttribute('disabled')
+  document.getElementById('link').setAttribute('class', 'inactive')
+  document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+}
+
+function guiProcessing() {
+  document.getElementById('generate').setAttribute('disabled', 'true')
+  document.getElementById('link').setAttribute('class', 'inactive')
+  document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+}
+
+function guiProcessed() {
+  document.getElementById('generate').removeAttribute('disabled')
+  document.getElementById('link').setAttribute('class', 'active')
+  document.getElementById('outputPdf').setAttribute('style', 'visibility:visible')
+}
+
 // main function called by the "Generate" button in the GUI
 async function generateOutputPdf () {
   const pdfjsLib = window.pdfjsLib
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
 
-  // TODO Disable "Generate" button
-  // TODO Show some "progress" indicator
+  // Disable buttons/links while processing
+  guiProcessing()
 
   // Clear pdf view frames
-  document.getElementById('inputPdf').src = 'about:blank'
   document.getElementById('outputPdf').src = 'about:blank'
 
   // Read input parameters from HTML form
@@ -88,11 +105,9 @@ async function generateOutputPdf () {
     fileContent = await readHostedFile('demo.pdf')
   }
 
-  // show provided PDF file in left frame
+  // Load the document via PDFlib to modify the document
   const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
-  const pdfDataUri1 = await pdfDoc.saveAsBase64({ dataUri: true })
-  document.getElementById('inputPdf').src = pdfDataUri1
-
+  
   // Load the document again via PDF.js which supports search features within the PDF
   const loadingTask = await pdfjsLib.getDocument(fileContent)
 
@@ -105,7 +120,8 @@ async function generateOutputPdf () {
   // show generated PDF in right frame
   // TODO: 2x outputPdfDoc.save bzw. saveAsBase64; avoid one?
   const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true })
-  document.getElementById('outputPdf').src = pdfDataUri
+  const iframe = document.getElementById('outputPdf');
+  iframe.src = pdfDataUri
 
   // Update download link
   const downloadPdf = await pdfDoc.save()
@@ -114,4 +130,6 @@ async function generateOutputPdf () {
   const binaryData = []
   binaryData.push(downloadPdf)
   link.href = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+
+  guiProcessed();
 }

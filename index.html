@@ -21,41 +21,109 @@
     <meta name="theme-color" content="#ffffff">
 
     <title>PDF Highlighter</title>
+
+    <style>
+      header {
+        border-bottom: 3px rgb(90 90 90) double;
+      }
+
+      header > p.title {
+        font-size: 2rem;
+        font-weight: bold;
+        font-family: sans-serif;
+      }
+
+      header > p.subtitle {
+        fons-size: 0.7rem;
+        font-family:sans-serif;
+        color: rgb(90 90 90);
+      }
+
+      .highlight {
+        background-color: yellow;
+      }
+
+      form > div {
+        min-width: 9rem;
+        float: left;
+        min-height: 2rem;
+      }
+
+      #color {
+        height: 1.3rem;
+      }
+
+      #outputPdf {
+        width: 100%;
+        height: 600px;
+        visibility: hidden;
+      }
+      
+      .active {
+        pointer-event: auto;
+      }
+
+      .inactive {
+        pointer-events: none;
+        color: rgb(20 20 20);
+      }
+
+      footer {
+        border-top: 3px rgb(90 90 90) double;
+        font-size: 0.7rem;
+      }
+
+    </style>
   </head>
 
   <body>
     <header>
-      <p>PDF Highlighter</p>
+      <p class="title"><img src="icon/favicon-32x32.png"/> PDF <span class="highlight">High</span>lighter</p>
+      <p class="subtitle">Online app to highlight words or complete rows in a PDF document</p>
     </header>
 
     <main>
       <form action="javascript:generateOutputPdf()">
-        <label>Input file:
+        <p>
+          <div><label>Input file:</label></div>
           <input id="file" type="file" size="50" accept="application/pdf">
-        </label>
+        </p>
 
-        <label>Search term: </label>
-        <input type="search" id="searchTerm" value="the">
+        <p>
+          <div><label>Search term: </label></div>
+          <input type="search" id="searchTerm" value="the">
+        </p>
 
-        <label>Color: </label><input type="color" value="#ffff00" id="color">
+        <p>
+          <div><label>Color: </label></div>
+          <input type="color" value="#ffff00" id="color">
+        </p>
 
-        <label>Highlight </label>
-        <input type="checkbox" id="highlightRow" checked="checked">full row
+        <p>
+          <div><label>Highlight </label></div>
+          <input type="checkbox" id="highlightRow" checked="checked">full row, instead of textbox only
+        </p>
 
-        <button id="generate">Generate</button>
+        <p>
+          <div></div>
+          <button id="generate">Generate</button>
+        </p>
+
+        <p>
+          <div>Download</div>
+          <a id="link" href="about:blank" class="inactive">highlighted PDF</a>
+        </p>
       </form>
-      <a id="link" href="about:blank">Download output pdf</a>
+      <p>
 
-      <iframe id="inputPdf" style="width: 30%; height: 600px;" src="about:blank"></iframe>
-      <iframe id="outputPdf" style="width: 30%; height: 600px;" src="about:blank"></iframe>
+      </p>
 
-
-      
+      <iframe id="outputPdf" src="about:blank"></iframe>
     </main>
 
     <footer>
-      <p>For support and fixes please contact ...</p>
-      <p>2023 by blomi</p>
+      <p>The processing of the PDF takes place local in the browser (not on the server).</p>
+      <p>For support and fixes please create an issue in the <a href="https://github.com/imolb/pdfhighlighter/issues">github project page</a></p>
     </footer>
   </body>
 </html>

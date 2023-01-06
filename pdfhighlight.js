@@ -57,18 +57,46 @@ async function readUploadFile (inputFile) {
   })
 }
 
+// Set cookie value
+function setCookie(cname, cvalue, exdays) {
+  const d = new Date();
+  d.setTime(d.getTime() + (exdays*24*60*60*1000));
+  let expires = "expires="+ d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/; SameSite=Lax";
+}
+
+// Read cookie value
+function getCookie(cname) {
+  let name = cname + "="
+  let decodedCookie = decodeURIComponent(document.cookie)
+    let ca = decodedCookie.split(';');
+    for(let i = 0; i <ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length)
+      }
+    }
+  return null
+}
+
+// Reset all GUI elements (e.g. after failure)
 function guiReset() {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
 }
 
+// Deactivate GUI elements while processing
 function guiProcessing() {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
 }
 
+// Activate and show GUI elements when processing is done
 function guiProcessed() {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
@@ -93,6 +121,11 @@ async function generateOutputPdf () {
   const rgbValue = convertToRgb(document.getElementById('color').value)
   const inputFiles = document.getElementById('file').files
   const inputFile = inputFiles[0]
+
+  // Store in cookies
+  setCookie('searchTerm', searchTerm)
+  setCookie('highlightRow', highlightRow)
+  setCookie('rgbValue', document.getElementById('color').value)
 
   // Load and read the provided input file
   // If empty, use default example
@@ -133,3 +166,29 @@ async function generateOutputPdf () {
 
   guiProcessed();
 }
+
+function initializePage() {
+  guiReset();
+
+  const searchTerm = getCookie('searchTerm')
+  const highlightRow = getCookie('highlightRow')
+  const rgbValue = getCookie('rgbValue')
+
+  if (searchTerm) {
+    document.getElementById('searchTerm').value = searchTerm
+  }
+
+  if (highlightRow) {
+    if (highlightRow == "true") {
+      document.getElementById('highlightRow').checked = true;
+    } else {
+      document.getElementById('highlightRow').checked = false;
+    }
+  }
+
+  if (rgbValue) {
+    document.getElementById('color').value = rgbValue
+  }
+}
+
+window.addEventListener("load", initializePage);

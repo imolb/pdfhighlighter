@@ -1,0 +1,32 @@
+{
+  "name": "pdfhighlighter",
+  "version": "1.0.0",
+  "description": "Highlights words/rows containing provided words in a PDF document",
+  "main": "pdfhighlight.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imolb/pdfhighlighter.git"
+  },
+  "keywords": [
+    "highlight",
+    "pdf",
+    "color",
+    "words"
+  ],
+  "author": "imolb",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/imolb/pdfhighlighter/issues"
+  },
+  "homepage": "https://github.com/imolb/pdfhighlighter#readme",
+  "devDependencies": {
+    "eslint": "^8.31.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.6.0",
+    "eslint-plugin-promise": "^6.1.1"
+  }
+}

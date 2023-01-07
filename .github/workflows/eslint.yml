@@ -40,9 +40,9 @@ jobs:
           --ext .js
           --format @microsoft/eslint-formatter-sarif
           --output-file reports/eslint-results.sarif
-        continue-on-error: true
 
       - name: Upload analysis results to GitHub actions log
+        if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
           name: eslint-results.sarif

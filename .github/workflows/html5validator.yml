@@ -18,9 +18,8 @@ jobs:
       with:
         root: .
         log_level: INFO
-      continue-on-error: true
-
     - name: Upload analysis results to GitHub actions log
+      if: success() || failure()
       uses: actions/upload-artifact@v3
       with:
         name: log

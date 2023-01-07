@@ -2,7 +2,7 @@
   "name": "pdfhighlighter",
   "version": "1.0.0",
   "description": "Highlights words/rows containing provided words in a PDF document",
-  "main": "pdfhighlight.js",
+  "main": "src/pdfhighlight.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

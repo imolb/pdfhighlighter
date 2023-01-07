@@ -36,14 +36,14 @@ jobs:
 
       - name: Run ESLint
         run: npx eslint .
-          --config .eslintrc.json
+          --config config/.eslintrc.json
           --ext .js
           --format @microsoft/eslint-formatter-sarif
-          --output-file reports/eslint-results.sarif
+          --output-file eslint-results.sarif
 
       - name: Upload analysis results to GitHub actions log
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
           name: eslint-results.sarif
-          path: reports/eslint-results.sarif
+          path: eslint-results.sarif

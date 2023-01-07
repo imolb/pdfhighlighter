@@ -1,4 +1,4 @@
-root: .
+root: src
 log: WARN
 ignore:
   - 'Property "pointer-event" doesn''t exist.'

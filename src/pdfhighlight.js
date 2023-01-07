@@ -119,12 +119,22 @@ async function generateOutputPdf () {
     document.getElementById('outputPdf').src = 'about:blank'
 
     // Read input parameters from HTML form
-    // TODO check on validity of input parameters
     const searchTerm = document.getElementById('searchTerm').value
     const highlightRow = document.getElementById('highlightRow').checked
     const rgbValue = convertToRgb(document.getElementById('color').value)
     const inputFiles = document.getElementById('file').files
     const inputFile = inputFiles[0]
+
+    // check on validity of input parameters
+    if (typeof searchTerm !== 'string') {
+      throw new Error('searchTerm is not a string')
+    }
+    if (searchTerm.length === 0) {
+      throw new Error('searchTerm is empty')
+    }
+    if (typeof highlightRow !== 'boolean') {
+      throw new Error('highlightRow is not boolean')
+    }
 
     // Store in cookies
     setCookie('searchTerm', searchTerm)
@@ -153,32 +163,31 @@ async function generateOutputPdf () {
       }
     })
 
-    // show generated PDF in right frame
-    // TODO: 2x outputPdfDoc.save bzw. saveAsBase64; avoid one?
-    const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true })
-    const iframe = document.getElementById('outputPdf')
-    iframe.src = pdfDataUri
-
-    // Update download link
+    // Create PDF as blob binary object
     const downloadPdf = await pdfDoc.save()
-    const link = document.getElementById('link')
-    link.download = 'highlighted.pdf'
     const binaryData = []
     binaryData.push(downloadPdf)
-    link.href = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+    const objectURL = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+
+    // Show in download link
+    const link = document.getElementById('link')
+    link.download = 'highlighted.pdf'
+    link.href = objectURL
+
+    // Show in iframe
+    const iframe = document.getElementById('outputPdf')
+    iframe.src = objectURL
 
     guiProcessed()
-    
   } catch (error) {
     console.error(error)
     guiReset()
-    document.getElementById('log').innerHTML = 'Internal failure in processing: '+error+'<pre>'+escapeHTML(error.stack)+'</pre>'
-
+    document.getElementById('log').innerHTML = 'Internal failure in processing: ' + error + '<pre>' + escapeHTML(error.stack) + '</pre>'
   }
 }
 
-function escapeHTML(str){
-    return new Option(str).innerHTML;
+function escapeHTML (str) {
+  return new Option(str).innerHTML
 }
 
 function initializePage () {

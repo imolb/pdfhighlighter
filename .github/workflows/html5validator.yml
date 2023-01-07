@@ -23,5 +23,5 @@ jobs:
     - name: Upload analysis results to GitHub actions log
       uses: actions/upload-artifact@v3
       with:
-        name: html5validator.log
-        path: reports/html5validator.log
+        name: log
+        path: log.log

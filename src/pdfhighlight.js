@@ -193,4 +193,7 @@ function initializePage () {
   document.getElementById('form').addEventListener('submit', generateOutputPdf)
 }
 
+function unusedfunction () {
+}
+
 window.addEventListener('load', initializePage)

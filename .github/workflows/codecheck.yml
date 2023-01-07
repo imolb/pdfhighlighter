@@ -31,31 +31,22 @@ jobs:
           --format @microsoft/eslint-formatter-sarif
           --output-file eslint-results.sarif
 
-      - name: Upload analysis results to GitHub actions log
+      - name: Upload eslint analysis results to GitHub actions log
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
           name: eslint-results.sarif
           path: eslint-results.sarif
 
-  html5validator:
-    name: HTML5validator scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Run HTML5Validator
+        if: success() || failure()
+        uses: Cyb3r-Jak3/html5validator-action@master
+        with:
+          config: config/.html5validator.yml
 
-    - name: Checks HTML5
-      uses: Cyb3r-Jak3/html5validator-action@master
-      with:
-        config: config/.html5validator.yml
-
-    - name: Upload analysis results to GitHub actions log
-      if: success() || failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: HTML5validator.log
-        path: log.log
+      - name: Upload HTML5Validator analysis results to GitHub actions log
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: HTML5validator.log
+          path: log.log

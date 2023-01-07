@@ -86,6 +86,9 @@ function getCookie (cname) {
 function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
+  document.getElementById('link').innerHTML = ''
+  document.getElementById('link').href = ''
+  document.getElementById('link').download = ''
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
   document.getElementById('log').innerHTML = ''
 }
@@ -142,13 +145,17 @@ async function generateOutputPdf () {
     setCookie('rgbValue', document.getElementById('color').value)
 
     // Load and read the provided input file
+    // and create name for output file
     // If empty, use default example
     let fileContent
+    let outputFileName
     if (inputFile) {
       fileContent = await readUploadFile(inputFile)
+      outputFileName = inputFile.name.replace(/\.([^.]*)$/i, '_highlighted.pdf')
     } else {
       // Fallback: read demo file from host server
       fileContent = await readHostedFile('demo.pdf')
+      outputFileName = 'demo_highlighted.pdf'
     }
 
     // Load the document via PDFlib to modify the document
@@ -171,7 +178,8 @@ async function generateOutputPdf () {
 
     // Show in download link
     const link = document.getElementById('link')
-    link.download = 'highlighted.pdf'
+    link.download = outputFileName
+    link.innerHTML = outputFileName
     link.href = objectURL
 
     // Show in iframe

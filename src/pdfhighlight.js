@@ -87,6 +87,7 @@ function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+  document.getElementById('log').innerHTML = ''
 }
 
 // Deactivate GUI elements while processing
@@ -94,6 +95,7 @@ function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+  document.getElementById('log').innerHTML = 'processing ...'
 }
 
 // Activate and show GUI elements when processing is done
@@ -101,70 +103,82 @@ function guiProcessed () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:visible')
+  document.getElementById('log').innerHTML = ''
 }
 
 // main function called by the "Generate" button in the GUI
 async function generateOutputPdf () {
-  const pdfjsLib = window.pdfjsLib
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
+  try {
+    const pdfjsLib = window.pdfjsLib
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
 
-  // Disable buttons/links while processing
-  guiProcessing()
+    // Disable buttons/links while processing
+    guiProcessing()
 
-  // Clear pdf view frames
-  document.getElementById('outputPdf').src = 'about:blank'
+    // Clear pdf view frames
+    document.getElementById('outputPdf').src = 'about:blank'
 
-  // Read input parameters from HTML form
-  // TODO check on validity of input parameters
-  const searchTerm = document.getElementById('searchTerm').value
-  const highlightRow = document.getElementById('highlightRow').checked
-  const rgbValue = convertToRgb(document.getElementById('color').value)
-  const inputFiles = document.getElementById('file').files
-  const inputFile = inputFiles[0]
+    // Read input parameters from HTML form
+    // TODO check on validity of input parameters
+    const searchTerm = document.getElementById('searchTerm').value
+    const highlightRow = document.getElementById('highlightRow').checked
+    const rgbValue = convertToRgb(document.getElementById('color').value)
+    const inputFiles = document.getElementById('file').files
+    const inputFile = inputFiles[0]
 
-  // Store in cookies
-  setCookie('searchTerm', searchTerm)
-  setCookie('highlightRow', highlightRow)
-  setCookie('rgbValue', document.getElementById('color').value)
+    // Store in cookies
+    setCookie('searchTerm', searchTerm)
+    setCookie('highlightRow', highlightRow)
+    setCookie('rgbValue', document.getElementById('color').value)
 
-  // Load and read the provided input file
-  // If empty, use default example
-  // TODO replace defautl example with proper example
-  let fileContent
-  if (inputFile) {
-    fileContent = await readUploadFile(inputFile)
-  } else {
-    // Fallback: read demo file from host server
-    fileContent = await readHostedFile('demo.pdf')
-  }
-
-  // Load the document via PDFlib to modify the document
-  const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
-
-  // Load the document again via PDF.js which supports search features within the PDF
-  const loadingTask = await pdfjsLib.getDocument(fileContent)
-
-  await loadingTask.promise.then(async function (pdfJsDoc) {
-    for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
-      await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow)
+    // Load and read the provided input file
+    // If empty, use default example
+    let fileContent
+    if (inputFile) {
+      fileContent = await readUploadFile(inputFile)
+    } else {
+      // Fallback: read demo file from host server
+      fileContent = await readHostedFile('demo.pdf')
     }
-  }).catch(console.error)
 
-  // show generated PDF in right frame
-  // TODO: 2x outputPdfDoc.save bzw. saveAsBase64; avoid one?
-  const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true })
-  const iframe = document.getElementById('outputPdf')
-  iframe.src = pdfDataUri
+    // Load the document via PDFlib to modify the document
+    const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
 
-  // Update download link
-  const downloadPdf = await pdfDoc.save()
-  const link = document.getElementById('link')
-  link.download = 'highlighted.pdf'
-  const binaryData = []
-  binaryData.push(downloadPdf)
-  link.href = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+    // Load the document again via PDF.js which supports search features within the PDF
+    const loadingTask = await pdfjsLib.getDocument(fileContent)
 
-  guiProcessed()
+    await loadingTask.promise.then(async function (pdfJsDoc) {
+      for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
+        await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow)
+      }
+    })
+
+    // show generated PDF in right frame
+    // TODO: 2x outputPdfDoc.save bzw. saveAsBase64; avoid one?
+    const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true })
+    const iframe = document.getElementById('outputPdf')
+    iframe.src = pdfDataUri
+
+    // Update download link
+    const downloadPdf = await pdfDoc.save()
+    const link = document.getElementById('link')
+    link.download = 'highlighted.pdf'
+    const binaryData = []
+    binaryData.push(downloadPdf)
+    link.href = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+
+    guiProcessed()
+    
+  } catch (error) {
+    console.error(error)
+    guiReset()
+    document.getElementById('log').innerHTML = 'Internal failure in processing: '+error+'<pre>'+escapeHTML(error.stack)+'</pre>'
+
+  }
+}
+
+function escapeHTML(str){
+    return new Option(str).innerHTML;
 }
 
 function initializePage () {

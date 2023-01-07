@@ -9,17 +9,21 @@ on:
   workflow_dispatch:
   
 jobs:
-  build:
+  HTML5check:
+    name: Run HTML5validator scanning
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Check out code
+      uses: actions/checkout@v3
+
     - name: Checks HTML5
       uses: Cyb3r-Jak3/html5validator-action@master
       with:
         config: config/.html5validator.yml
+
     - name: Upload analysis results to GitHub actions log
       if: success() || failure()
       uses: actions/upload-artifact@v3
       with:
-        name: log
+        name: HTML5validator.log
         path: log.log

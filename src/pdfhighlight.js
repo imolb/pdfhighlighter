@@ -86,11 +86,11 @@ function getCookie (cname) {
 function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
-  document.getElementById('link').innerHTML = ''
+  document.getElementById('link').replaceChildren()
   document.getElementById('link').href = ''
   document.getElementById('link').download = ''
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
-  document.getElementById('log').innerHTML = ''
+  document.getElementById('log').replaceChildren()  
 }
 
 // Deactivate GUI elements while processing
@@ -98,7 +98,7 @@ function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
-  document.getElementById('log').innerHTML = 'processing ...'
+  document.getElementById('log').appendChild(document.createTextNode('processing ...'))
 }
 
 // Activate and show GUI elements when processing is done
@@ -106,7 +106,7 @@ function guiProcessed () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:visible')
-  document.getElementById('log').innerHTML = ''
+  document.getElementById('log').replaceChildren()
 }
 
 // main function called by the "Generate" button in the GUI
@@ -179,7 +179,7 @@ async function generateOutputPdf () {
     // Show in download link
     const link = document.getElementById('link')
     link.download = outputFileName
-    link.innerHTML = outputFileName
+    link.appendChild(document.createTextNode(outputFileName))
     link.href = objectURL
 
     // Show in iframe
@@ -190,13 +190,14 @@ async function generateOutputPdf () {
   } catch (error) {
     console.error(error)
     guiReset()
-    document.getElementById('log').innerHTML = 'Internal failure in processing: ' + error + '<pre>' + escapeHTML(error.stack) + '</pre>'
+    document.getElementById('log').replaceChildren()
+    document.getElementById('log').appendChild(document.createTextNode('Internal error: ' + error))
+
+    document.getElementById('logdetails').replaceChildren()
+    document.getElementById('logdetails').appendChild(document.createTextNode(error.stack))    
   }
 }
 
-function escapeHTML (str) {
-  return new Option(str).innerHTML
-}
 
 function initializePage () {
   guiReset()

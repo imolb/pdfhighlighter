@@ -140,9 +140,9 @@ async function generateOutputPdf () {
     }
 
     // Store in cookies
-    setCookie('searchTerm', searchTerm)
-    setCookie('highlightRow', highlightRow)
-    setCookie('rgbValue', document.getElementById('color').value)
+    setCookie('searchTerm', searchTerm, 400)
+    setCookie('highlightRow', highlightRow, 400)
+    setCookie('rgbValue', document.getElementById('color').value, 400)
 
     // Load and read the provided input file
     // and create name for output file

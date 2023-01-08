@@ -1,5 +1,18 @@
+/**
+ * pdfhighlight.js
+ *
+ * https://github.com/imolb/pdfhighlighter
+ *
+ */
+
+/**
+ * Convert 7 digit color string into PDFLib.rgb object
+ *
+ * @param {string} str - color string starting with # and 6 hex-digits e.g. #0A33FF
+ * @return {PDFlib.rgb} - rgb object of the PDFLib representing the color
+ */
 function convertToRgb (str) {
-  if (str.charAt(0) !== '#' || str.length !== 7) {
+  if (str.length !== 7 || str.charAt(0) !== '#') {
     throw new Error('Only six-digit hex colors are allowed prefixed with #.')
   }
   const aRgbHex = str.substring(1, 7).match(/.{1,2}/g)
@@ -9,6 +22,19 @@ function convertToRgb (str) {
   return rgbValue
 }
 
+/**
+ * Adds rectangle in PDF document
+ *
+ * @param {PDFLib.PDFDocument} pdfDoc - object of the PDFLib representing the PDF document to modify
+ * @param {number} pageIdx - page number within the PDF document to place the rectangle
+ * @param {number} width - widht of the rectangle
+ * @param {number} height - height of the rectangle
+ * @param {number} positionX - X coordinate of the rectangle
+ * @param {number} positionY - Y coordinate of the rectangle
+ * @param {PDFLib.rgb} rgbValue - background color of the rectangle
+ * @param {boolean} highlightRow - if true width and positionX are neglected and the rectangle is drawn over the whole page
+ * @return {void}
+ */
 function highlightOutputPdf (pdfDoc, pageIdx, width, height, positionX, positionY, rgbValue, highlightRow) {
   if (highlightRow) {
     positionX = 0
@@ -25,6 +51,18 @@ function highlightOutputPdf (pdfDoc, pageIdx, width, height, positionX, position
   })
 }
 
+/**
+ * Searches for text in PDF document page and highlights the found positions using {@link highlightOutputPdf}
+ *
+ * @async
+ * @param {pdfjslib.PDFDocument} pdfJsDoc - object of the pdfjslib representing the PDF document to search in
+ * @param {number} pageIdx - page number within the PDF document to search in
+ * @param {PDFLib.PDFDocument} pdfDoc - object of the PDFLib representing the PDF document to add highlights as rectangles
+ * @param {string} searchTerm - String to search for
+ * @param {PDFLib.rgb} rgbValue - background color of the rectangle
+ * @param {boolean} highlightRow - if true width and positionX are neglected and the rectangle is drawn over the whole page
+ * @return {void}
+ */
 async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow) {
   const page = await pdfJsDoc.getPage(pageIdx)
   const content = await page.getTextContent()
@@ -38,15 +76,27 @@ async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, high
   })
 }
 
-// Read file from host/server
+/**
+ * Read a file from a host (server)
+ *
+ * @param {string} fileName - URL of the file to load
+ * @return {ArrayBuffer} - Content of the read file
+ */
 async function readHostedFile (fileName) {
-  if (!fileName) return
+  if (!fileName || typeof fileName === 'string') {
+    throw new Error('Input fileName is not a string')
+  }
 
   const fileContent = await fetch(fileName).then(res => res.arrayBuffer())
   return fileContent
 }
 
-// Read uploaded file
+/**
+ * Read file provided as upload by the client
+ *
+ * @param {object} fileName - object as provided from DOM <input type="file"> element
+ * @return {string} - base64 encoded string representing the file
+ */
 async function readUploadFile (inputFile) {
   if (!inputFile) return
 
@@ -57,7 +107,14 @@ async function readUploadFile (inputFile) {
   })
 }
 
-// Set cookie value
+/**
+ * Set a cookie in the browser
+ *
+ * @param {string} cname - name of the cookie parameter
+ * @param {string} cvalue - value of the cookie parameter
+ * @param {number} exdays - number of days from now when the cookie shall expire
+ * @return {void}
+ */
 function setCookie (cname, cvalue, exdays) {
   const d = new Date()
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000))
@@ -65,7 +122,12 @@ function setCookie (cname, cvalue, exdays) {
   document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/; SameSite=Lax'
 }
 
-// Read cookie value
+/**
+ * Read a cookie value from the browser
+ *
+ * @param {string} cname - name of the cookie parameter
+ * @return {string} - value of the cookie parameter, null if not found
+ */
 function getCookie (cname) {
   const name = cname + '='
   const decodedCookie = decodeURIComponent(document.cookie)
@@ -82,7 +144,11 @@ function getCookie (cname) {
   return null
 }
 
-// Reset all GUI elements (e.g. after failure)
+/**
+ * Set all GUI elements in the browser to default values
+ *
+ * @return {void}
+ */
 function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'inactive')
@@ -93,15 +159,24 @@ function guiReset () {
   document.getElementById('log').replaceChildren()
 }
 
-// Deactivate GUI elements while processing
+/**
+ * Set GUI elements in the browser while the PDF is processed (deactivation of elements and processing indication)
+ *
+ * @return {void}
+ */
 function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('link').setAttribute('class', 'inactive')
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+  document.getElementById('outputPdf').src = 'about:blank'
   document.getElementById('log').appendChild(document.createTextNode('processing ...'))
 }
 
-// Activate and show GUI elements when processing is done
+/**
+ * Set GUI elements in the browser when the PDF is processed (make result elements visible and elements active)
+ *
+ * @return {void}
+ */
 function guiProcessed () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
@@ -109,7 +184,15 @@ function guiProcessed () {
   document.getElementById('log').replaceChildren()
 }
 
-// main function called by the "Generate" button in the GUI
+/**
+ * Call back function of the generate button in the GUI
+ * The function will perform the following steps
+ * - Load the PDF document by {@link readHostedFile} or {@link readUploadFile}
+ * - Search for the term and highlight the found searc term by {@link searchPage}
+ * - Show the result
+ *
+ * @return {void}
+ */
 async function generateOutputPdf () {
   try {
     const pdfjsLib = window.pdfjsLib
@@ -117,9 +200,6 @@ async function generateOutputPdf () {
 
     // Disable buttons/links while processing
     guiProcessing()
-
-    // Clear pdf view frames
-    document.getElementById('outputPdf').src = 'about:blank'
 
     // Read input parameters from HTML form
     const searchTerm = document.getElementById('searchTerm').value
@@ -139,7 +219,7 @@ async function generateOutputPdf () {
       throw new Error('highlightRow is not boolean')
     }
 
-    // Store in cookies
+    // Store parameters from HTML form in cookies for future page visits
     setCookie('searchTerm', searchTerm, 400)
     setCookie('highlightRow', highlightRow, 400)
     setCookie('rgbValue', document.getElementById('color').value, 400)
@@ -164,13 +244,14 @@ async function generateOutputPdf () {
     // Load the document again via PDF.js which supports search features within the PDF
     const loadingTask = await pdfjsLib.getDocument(fileContent)
 
+    // Search within each page and highlight the found positions
     await loadingTask.promise.then(async function (pdfJsDoc) {
       for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
         await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow)
       }
     })
 
-    // Create PDF as blob binary object
+    // Create PDF as blob binary object to provide to browser
     const downloadPdf = await pdfDoc.save()
     const binaryData = []
     binaryData.push(downloadPdf)
@@ -186,18 +267,30 @@ async function generateOutputPdf () {
     const iframe = document.getElementById('outputPdf')
     iframe.src = objectURL
 
+    // Enable GUI elements, as processing is finished
     guiProcessed()
   } catch (error) {
+    // Show error in the console
     console.error(error)
+
+    // Reset all GUI elements to default state
     guiReset()
+
+    // Show error message
     document.getElementById('log').replaceChildren()
     document.getElementById('log').appendChild(document.createTextNode('Internal error: ' + error))
 
+    // Show error stack
     document.getElementById('logdetails').replaceChildren()
     document.getElementById('logdetails').appendChild(document.createTextNode(error.stack))
   }
 }
 
+/**
+ * Initialize the page by setting HTML form parameters from cookie values and add callback function to the form
+ *
+ * @return {void}
+ */
 function initializePage () {
   guiReset()
 

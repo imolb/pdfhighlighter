@@ -90,7 +90,7 @@ function guiReset () {
   document.getElementById('link').href = ''
   document.getElementById('link').download = ''
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
-  document.getElementById('log').replaceChildren()  
+  document.getElementById('log').replaceChildren()
 }
 
 // Deactivate GUI elements while processing
@@ -194,10 +194,9 @@ async function generateOutputPdf () {
     document.getElementById('log').appendChild(document.createTextNode('Internal error: ' + error))
 
     document.getElementById('logdetails').replaceChildren()
-    document.getElementById('logdetails').appendChild(document.createTextNode(error.stack))    
+    document.getElementById('logdetails').appendChild(document.createTextNode(error.stack))
   }
 }
-
 
 function initializePage () {
   guiReset()

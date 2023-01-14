@@ -159,7 +159,7 @@ function guiReset () {
   document.getElementById('outputPdf').src = 'about:blank'
   document.getElementById('log').removeAttribute('class')
   document.getElementById('log').replaceChildren()
-  document.getElementById('logdetails').replaceChildren()  
+  document.getElementById('logdetails').replaceChildren()
 }
 
 /**

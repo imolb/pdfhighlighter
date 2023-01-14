@@ -83,7 +83,7 @@ async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, high
  * @return {ArrayBuffer} - Content of the read file
  */
 async function readHostedFile (fileName) {
-  if (!fileName || typeof fileName === 'string') {
+  if (!fileName || typeof fileName !== 'string') {
     throw new Error('Input fileName is not a string')
   }
 
@@ -156,7 +156,10 @@ function guiReset () {
   document.getElementById('link').href = ''
   document.getElementById('link').download = ''
   document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
+  document.getElementById('outputPdf').src = 'about:blank'
+  document.getElementById('log').removeAttribute('class')
   document.getElementById('log').replaceChildren()
+  document.getElementById('logdetails').replaceChildren()  
 }
 
 /**
@@ -166,9 +169,6 @@ function guiReset () {
  */
 function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
-  document.getElementById('link').setAttribute('class', 'inactive')
-  document.getElementById('outputPdf').setAttribute('style', 'visibility:hidden')
-  document.getElementById('outputPdf').src = 'about:blank'
   document.getElementById('log').appendChild(document.createTextNode('processing ...'))
 }
 
@@ -197,6 +197,9 @@ async function generateOutputPdf () {
   try {
     const pdfjsLib = window.pdfjsLib
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
+
+    // Set GUI to default state
+    guiReset()
 
     // Disable buttons/links while processing
     guiProcessing()
@@ -278,7 +281,8 @@ async function generateOutputPdf () {
 
     // Show error message
     document.getElementById('log').replaceChildren()
-    document.getElementById('log').appendChild(document.createTextNode('Internal error: ' + error))
+    document.getElementById('log').appendChild(document.createTextNode('Internal failure: ' + error))
+    document.getElementById('log').setAttribute('class', 'error')
 
     // Show error stack
     document.getElementById('logdetails').replaceChildren()

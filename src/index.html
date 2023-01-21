@@ -52,6 +52,11 @@
         float: left;
       }
 
+      form > div > fieldset {
+        border: none;
+        padding: 0;
+      }
+
       #color {
         height: 1.3rem;
       }
@@ -111,13 +116,32 @@
         </div>
 
         <div class="formParameter">
+          <div><label>Search option:</label></div>
+          <input type="checkbox" id="searchInsensitive">case insensitive
+        </div>
+
+        <div class="formParameter">
+          <div><label>Search option:</label></div>
+          <input type="checkbox" id="searchRegExp">use regular expression
+        </div>
+
+        <div class="formParameter">
           <div><label>Color: </label></div>
           <input type="color" value="#ffff00" id="color">
         </div>
 
         <div class="formParameter">
           <div><label>Highlight </label></div>
-          <input type="checkbox" id="highlightRow" checked="checked">full row, instead of textbox only
+          <fieldset>
+            <input type="radio" id="term" name="highlight" value="term" checked="checked">
+            <label for="term">search term</label>
+
+            <input type="radio" id="box" name="highlight" value="box">
+            <label for="box">text box</label>
+
+            <input type="radio" id="row" name="highlight" value="row">
+            <label for="row">full row</label>
+          </fieldset>
         </div>
 
         <div class="formParameter">

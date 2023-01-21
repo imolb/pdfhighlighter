@@ -1,3 +1,5 @@
+'use strict'
+
 /**
  * pdfhighlight.js
  *
@@ -23,32 +25,74 @@ function convertToRgb (str) {
 }
 
 /**
- * Adds rectangle in PDF document
+ * Computes the x position and width of the highlight box
  *
- * @param {PDFLib.PDFDocument} pdfDoc - object of the PDFLib representing the PDF document to modify
- * @param {number} pageIdx - page number within the PDF document to place the rectangle
- * @param {number} width - widht of the rectangle
- * @param {number} height - height of the rectangle
- * @param {number} positionX - X coordinate of the rectangle
- * @param {number} positionY - Y coordinate of the rectangle
- * @param {PDFLib.rgb} rgbValue - background color of the rectangle
- * @param {boolean} highlightRow - if true width and positionX are neglected and the rectangle is drawn over the whole page
- * @return {void}
- */
-function highlightOutputPdf (pdfDoc, pageIdx, width, height, positionX, positionY, rgbValue, highlightRow) {
-  if (highlightRow) {
-    positionX = 0
-    width = 1500
+ * @param {string} searchTerm - String to search for
+ * @param {boolean} searchInsensitive - Search case-insensitive
+ * @param {string} textBoxStr - String of the text box where the searchTerm was found
+ * @param {string} highlight - 'term' = highlight only the search term, 'box' = highlight pdf box, 'row' = highlight full page row
+ * @param {PDFLIb.PDFFont} pdfFontWidth - object of the PDFLib representing a font
+ * @param {number} positionX - X coordinate of found text box
+ * @param {number} width - width of the found text box
+ * @param {number} textHeight - height of the text
+ * @param {number} pageWidth - widht of the page
+ *
+ * @returns {array} - Returns array with field boxWidth and boxX parameters, where highlight shall be set
+  */
+function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, highlight, pdfFontWidth,
+  positionX, width, textHeight, pageWidth) {
+  let boxWidth = width
+  let boxX = positionX
+  const highlightPos = [] // empty array for return
+
+  switch (highlight) {
+    case 'term': {
+      const searchPattern = new RegExp(searchTerm, searchInsensitive ? 'gi' : 'g')
+
+      let searchMatch = searchPattern.exec(textBoxStr)
+
+      while (searchMatch) {
+        const termLength = searchMatch.length
+        const idxEnd = searchPattern.lastIndex
+        const idxStart = idxEnd - termLength
+
+        // strings text before, within and after found pattern
+        const textBefore = textBoxStr.substring(0, idxStart)
+        const textWithin = textBoxStr.substring(idxStart, idxEnd)
+        const textAfter = textBoxStr.substring(idxEnd)
+
+        // Text-Box width based on font size
+        let widthBefore = pdfFontWidth.widthOfTextAtSize(textBefore, textHeight)
+        let widthWithin = pdfFontWidth.widthOfTextAtSize(textWithin, textHeight)
+        let widthAfter = pdfFontWidth.widthOfTextAtSize(textAfter, textHeight)
+
+        // Normalize text-box width based on actual found text box
+        const scaleFactor = width / (widthBefore + widthWithin + widthAfter)
+        widthBefore = widthBefore * scaleFactor
+        widthWithin = widthWithin * scaleFactor
+        widthAfter = widthAfter * scaleFactor
+
+        boxWidth = widthWithin
+        boxX = positionX + widthBefore
+        highlightPos.push({ boxWidth, boxX })
+
+        searchMatch = searchPattern.exec(textBoxStr)
+      }
+      break
+    }
+    case 'box':
+    // Highlight the full text box wihtin the search term was found
+      highlightPos.push({ boxWidth: width, boxX: positionX })
+      break
+    case 'row':
+    // Highlight the full row of the page
+      highlightPos.push({ boxWidth: pageWidth, boxX: 0 })
+      break
+    default:
+      throw new Error('Input highlightRow is not row, box or term')
   }
 
-  pdfDoc.getPage(pageIdx - 1).drawRectangle({
-    x: positionX,
-    y: positionY,
-    height,
-    width,
-    color: rgbValue,
-    blendMode: window.PDFLib.BlendMode.Darken
-  })
+  return highlightPos
 }
 
 /**
@@ -59,19 +103,38 @@ function highlightOutputPdf (pdfDoc, pageIdx, width, height, positionX, position
  * @param {number} pageIdx - page number within the PDF document to search in
  * @param {PDFLib.PDFDocument} pdfDoc - object of the PDFLib representing the PDF document to add highlights as rectangles
  * @param {string} searchTerm - String to search for
+ * @param {boolean} searchInsensitive - Search case-insensitive
+ * @param {boolean} searchRegExp - Consider the searchTerm as regular expression
  * @param {PDFLib.rgb} rgbValue - background color of the rectangle
- * @param {boolean} highlightRow - if true width and positionX are neglected and the rectangle is drawn over the whole page
+ * @param {string} highlight - 'term' = highlight only the search term, 'box' = highlight pdf box, 'row' = highlight full page row
+ * @param {PDFLIb.PDFFont} pdfFontWidth - object of the PDFLib representing a font
  * @return {void}
  */
-async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow) {
+async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensitive, searchRegExp, rgbValue, highlight, pdfFontWidth) {
   const page = await pdfJsDoc.getPage(pageIdx)
   const content = await page.getTextContent()
-  const re = new RegExp('(.{0,20})' + searchTerm + '(.{0,20})', 'gi')
+
+  if (!searchRegExp) {
+    // escape regexp expresions
+    searchTerm = searchTerm.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')
+  }
+  const searchPattern = new RegExp(searchTerm, searchInsensitive ? 'i' : '')
 
   content.items.forEach(async function (textItem) {
-    if (re.exec(textItem.str)) {
-      highlightOutputPdf(pdfDoc, pageIdx, textItem.width, textItem.height,
-        textItem.transform[4], textItem.transform[5], rgbValue, highlightRow)
+    if (searchPattern.test(textItem.str)) {
+      const highlightPos = computeHighlightPosition(searchTerm, searchInsensitive, textItem.str, highlight,
+        pdfFontWidth, textItem.transform[4], textItem.width, textItem.height, pdfDoc.getPage(pageIdx - 1).getHeight())
+
+      for (let i = 0; i < highlightPos.length; i++) {
+        pdfDoc.getPage(pageIdx - 1).drawRectangle({
+          x: highlightPos[i].boxX,
+          y: textItem.transform[5],
+          height: textItem.height,
+          width: highlightPos[i].boxWidth,
+          color: rgbValue,
+          blendMode: window.PDFLib.BlendMode.Darken
+        })
+      }
     }
   })
 }
@@ -206,7 +269,9 @@ async function generateOutputPdf () {
 
     // Read input parameters from HTML form
     const searchTerm = document.getElementById('searchTerm').value
-    const highlightRow = document.getElementById('highlightRow').checked
+    const searchInsensitive = document.getElementById('searchInsensitive').checked
+    const searchRegExp = document.getElementById('searchRegExp').checked
+    const highlight = document.querySelector('input[name="highlight"]:checked').value
     const rgbValue = convertToRgb(document.getElementById('color').value)
     const inputFiles = document.getElementById('file').files
     const inputFile = inputFiles[0]
@@ -218,13 +283,21 @@ async function generateOutputPdf () {
     if (searchTerm.length === 0) {
       throw new Error('searchTerm is empty')
     }
-    if (typeof highlightRow !== 'boolean') {
-      throw new Error('highlightRow is not boolean')
+    if (typeof searchInsensitive !== 'boolean') {
+      throw new Error('searchInsensitive is not boolean')
+    }
+    if (typeof searchRegExp !== 'boolean') {
+      throw new Error('searchRegExp is not boolean')
+    }
+    if (typeof highlight !== 'string') {
+      throw new Error('highlight is not string')
     }
 
     // Store parameters from HTML form in cookies for future page visits
     setCookie('searchTerm', searchTerm, 400)
-    setCookie('highlightRow', highlightRow, 400)
+    setCookie('searchInsensitive', searchInsensitive, 400)
+    setCookie('searchRegExp', searchRegExp, 400)
+    setCookie('highlight', highlight, 400)
     setCookie('rgbValue', document.getElementById('color').value, 400)
 
     // Load and read the provided input file
@@ -247,10 +320,14 @@ async function generateOutputPdf () {
     // Load the document again via PDF.js which supports search features within the PDF
     const loadingTask = await pdfjsLib.getDocument(fileContent)
 
+    // Create a new document for purpose of text width computations
+    const pdfDocWidth = await window.PDFLib.PDFDocument.create()
+    const pdfFontWidth = await pdfDocWidth.embedFont(window.PDFLib.StandardFonts.TimesRoman)
+
     // Search within each page and highlight the found positions
     await loadingTask.promise.then(async function (pdfJsDoc) {
       for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
-        await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, rgbValue, highlightRow)
+        await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensitive, searchRegExp, rgbValue, highlight, pdfFontWidth)
       }
     })
 
@@ -299,18 +376,42 @@ function initializePage () {
   guiReset()
 
   const searchTerm = getCookie('searchTerm')
-  const highlightRow = getCookie('highlightRow')
+  const searchInsensitive = getCookie('searchInsensitive')
+  const searchRegExp = getCookie('searchRegExp')
+  const highlight = getCookie('highlight')
   const rgbValue = getCookie('rgbValue')
 
   if (searchTerm) {
     document.getElementById('searchTerm').value = searchTerm
   }
 
-  if (highlightRow) {
-    if (highlightRow === 'true') {
-      document.getElementById('highlightRow').checked = true
+  if (searchInsensitive) {
+    if (searchInsensitive === 'true') {
+      document.getElementById('searchInsensitive').checked = true
     } else {
-      document.getElementById('highlightRow').checked = false
+      document.getElementById('searchInsensitive').checked = false
+    }
+  }
+
+  if (searchRegExp) {
+    if (searchRegExp === 'true') {
+      document.getElementById('searchRegExp').checked = true
+    } else {
+      document.getElementById('searchRegExp').checked = false
+    }
+  }
+
+  if (highlight) {
+    switch (highlight) {
+      case 'term':
+        document.getElementById('term').checked = true
+        break
+      case 'box':
+        document.getElementById('box').checked = true
+        break
+      case 'row':
+        document.getElementById('row').checked = true
+        break
     }
   }
 

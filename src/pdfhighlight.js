@@ -52,7 +52,7 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
       let searchMatch = searchPattern.exec(textBoxStr)
 
       while (searchMatch) {
-        const termLength = searchMatch.length
+        const termLength = searchMatch[0].length
         const idxEnd = searchPattern.lastIndex
         const idxStart = idxEnd - termLength
 

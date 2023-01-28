@@ -25,6 +25,47 @@ function convertToRgb (str) {
 }
 
 /**
+ * Computes with of character based on provided font class
+ *
+ * @param {string} character - Character to get widths for
+ * @param {PDFJsLib.Font} font - font of the found text box
+ *
+ * @returns {number} Width of character width of given string, null if not found
+ */
+function widthOfChar (character, font) {
+  for (let idxMap = 0; idxMap < font.toUnicode._map.length; idxMap++) {
+    if (character === font.toUnicode._map[idxMap]) {
+      return font.widths[idxMap]
+    }
+  }
+
+  // not found in font table
+  return null
+}
+
+/**
+ * Computes with of text based on provided font class
+ *
+ * @param {string} text - Text to compute widths for
+ * @param {PDFJsLib.Font} font - font of the found text box
+ *
+ * @returns {number} Sum of character width of given string, null if characters not found
+ */
+function widthOfString (text, font) {
+  let sum = 0
+
+  for (let idxText = 0; idxText < text.length; idxText++) {
+    const width = widthOfChar(text[idxText], font)
+
+    if (!width) {
+      return null
+    }
+    sum = sum + width
+  }
+  return sum
+}
+
+/**
  * Computes the x position and width of the highlight box
  *
  * @param {string} searchTerm - String to search for
@@ -36,11 +77,12 @@ function convertToRgb (str) {
  * @param {number} width - width of the found text box
  * @param {number} textHeight - height of the text
  * @param {number} pageWidth - widht of the page
+ * @param {PDFJsLib.Font} font - font of the found text box
  *
  * @returns {array} - Returns array with field boxWidth and boxX parameters, where highlight shall be set
-  */
+ */
 function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, highlight, pdfFontWidth,
-  positionX, width, textHeight, pageWidth) {
+  positionX, width, textHeight, pageWidth, font) {
   let boxWidth = width
   let boxX = positionX
   const highlightPos = [] // empty array for return
@@ -61,10 +103,21 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
         const textWithin = textBoxStr.substring(idxStart, idxEnd)
         const textAfter = textBoxStr.substring(idxEnd)
 
-        // Text-Box width based on font size
-        let widthBefore = pdfFontWidth.widthOfTextAtSize(textBefore, textHeight)
-        let widthWithin = pdfFontWidth.widthOfTextAtSize(textWithin, textHeight)
-        let widthAfter = pdfFontWidth.widthOfTextAtSize(textAfter, textHeight)
+        let widthBefore
+        let widthWithin
+        let widthAfter
+
+        // Compute width based on font of the pdf
+        widthBefore = widthOfString(textBefore, font)
+        widthWithin = widthOfString(textWithin, font)
+        widthAfter = widthOfString(textAfter, font)
+
+        // If this has failed, compute based on default font
+        if (!widthBefore || !widthWithin || !widthAfter) {
+          widthBefore = pdfFontWidth.widthOfTextAtSize(textBefore, textHeight)
+          widthWithin = pdfFontWidth.widthOfTextAtSize(textWithin, textHeight)
+          widthAfter = pdfFontWidth.widthOfTextAtSize(textAfter, textHeight)
+        }
 
         // Normalize text-box width based on actual found text box
         const scaleFactor = width / (widthBefore + widthWithin + widthAfter)
@@ -113,6 +166,9 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
 async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensitive, searchRegExp, rgbValue, highlight, pdfFontWidth) {
   const page = await pdfJsDoc.getPage(pageIdx)
   const content = await page.getTextContent()
+  // call of getOperatorList is needed, otherwise commonObjs is empty
+  // eslint-disable-next-line no-unused-vars
+  const opList = await page.getOperatorList()
 
   if (!searchRegExp) {
     // escape regexp expresions
@@ -122,8 +178,11 @@ async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensit
 
   content.items.forEach(async function (textItem) {
     if (searchPattern.test(textItem.str)) {
+      // get the font details
+      const font = await page.commonObjs.get(textItem.fontName)
+
       const highlightPos = computeHighlightPosition(searchTerm, searchInsensitive, textItem.str, highlight,
-        pdfFontWidth, textItem.transform[4], textItem.width, textItem.height, pdfDoc.getPage(pageIdx - 1).getHeight())
+        pdfFontWidth, textItem.transform[4], textItem.width, textItem.height, pdfDoc.getPage(pageIdx - 1).getHeight(), font)
 
       for (let i = 0; i < highlightPos.length; i++) {
         pdfDoc.getPage(pageIdx - 1).drawRectangle({
@@ -166,7 +225,8 @@ async function readUploadFile (inputFile) {
   return new Promise((resolve) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result)
-    reader.readAsDataURL(inputFile)
+    // reader.readAsDataURL(inputFile)
+    reader.readAsArrayBuffer(inputFile)
   })
 }
 
@@ -318,7 +378,8 @@ async function generateOutputPdf () {
     const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
 
     // Load the document again via PDF.js which supports search features within the PDF
-    const loadingTask = await pdfjsLib.getDocument(fileContent)
+    // The fontExtraProperties are needed to have access to the witdth property of the font
+    const loadingTask = await pdfjsLib.getDocument({ data: fileContent, fontExtraProperties: true })
 
     // Create a new document for purpose of text width computations
     const pdfDocWidth = await window.PDFLib.PDFDocument.create()

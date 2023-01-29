@@ -113,7 +113,7 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
         widthAfter = widthOfString(textAfter, font)
 
         // If this has failed, compute based on default font
-        if (!widthBefore || !widthWithin || !widthAfter) {
+        if (widthBefore === null || widthWithin === null || widthAfter === null) {
           widthBefore = pdfFontWidth.widthOfTextAtSize(textBefore, textHeight)
           widthWithin = pdfFontWidth.widthOfTextAtSize(textWithin, textHeight)
           widthAfter = pdfFontWidth.widthOfTextAtSize(textAfter, textHeight)

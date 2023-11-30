@@ -319,7 +319,7 @@ function guiProcessed () {
 async function generateOutputPdf () {
   try {
     const pdfjsLib = window.pdfjsLib
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.mjs'
 
     // Set GUI to default state
     guiReset()

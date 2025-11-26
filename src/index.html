@@ -6,18 +6,20 @@
     <meta name="keywords" content="highlight pdf color words">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- pdf-lib UMD -->
     <script src="https://unpkg.com/pdf-lib"></script>
-    <script src="https://unpkg.com/pdfjs-dist/build/pdf.mjs" type="module"></script>
+    <!-- Use the non-module build of PDF.js so it exposes window.pdfjsLib (the app expects this global) -->
+    <script src="https://unpkg.com/pdfjs-dist/build/pdf.js"></script>
     <script src="pdfhighlight.js"></script>
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/pdfhighlighter/icon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/pdfhighlighter/icon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/pdfhighlighter/icon/favicon-16x16.png">
-    <link rel="manifest" href="/pdfhighlighter/icon/site.webmanifest">
-    <link rel="mask-icon" href="/pdfhighlighter/icon/safari-pinned-tab.svg" color="#5bbad5">
-    <link rel="shortcut icon" href="/pdfhighlighter/icon/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="manifest" href="icon/site.webmanifest">
+    <link rel="mask-icon" href="icon/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="icon/favicon.ico">
     <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="msapplication-config" content="/pdfhighlighter/icon/browserconfig.xml">
+    <meta name="msapplication-config" content="icon/browserconfig.xml">
     <meta name="theme-color" content="#ffffff">
 
     <title>PDF Highlighter</title>
@@ -68,7 +70,7 @@
       }
       
       .active {
-        pointer-event: auto;
+        pointer-events: auto;
       }
 
       .inactive {

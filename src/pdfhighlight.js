@@ -25,31 +25,37 @@ function convertToRgb (str) {
 }
 
 /**
- * Computes with of character based on provided font class
+ * Computes width of character based on provided font class
  *
  * @param {string} character - Character to get widths for
  * @param {PDFJsLib.Font} font - font of the found text box
  *
- * @returns {number} Width of character width of given string, null if not found
+ * @returns {number|null} Width of character, null if not found
  */
 function widthOfChar (character, font) {
-  for (let idxMap = 0; idxMap < font.toUnicode._map.length; idxMap++) {
-    if (character === font.toUnicode._map[idxMap]) {
-      return font.widths[idxMap]
-    }
-  }
+  try {
+    // Defensive checks - font internals vary between PDF.js versions
+    if (!font || !font.toUnicode || !font.toUnicode._map || !font.widths) return null
 
-  // not found in font table
-  return null
+    for (let idxMap = 0; idxMap < font.toUnicode._map.length; idxMap++) {
+      if (character === font.toUnicode._map[idxMap]) {
+        return font.widths[idxMap]
+      }
+    }
+    return null
+  } catch (e) {
+    // If unexpected structure, return null to trigger fallback
+    return null
+  }
 }
 
 /**
- * Computes with of text based on provided font class
+ * Computes width of text based on provided font class
  *
  * @param {string} text - Text to compute widths for
  * @param {PDFJsLib.Font} font - font of the found text box
  *
- * @returns {number} Sum of character width of given string, null if characters not found
+ * @returns {number|null} Sum of character widths, null if any char not found
  */
 function widthOfString (text, font) {
   let sum = 0
@@ -57,10 +63,10 @@ function widthOfString (text, font) {
   for (let idxText = 0; idxText < text.length; idxText++) {
     const width = widthOfChar(text[idxText], font)
 
-    if (!width) {
+    if (width === null) {
       return null
     }
-    sum = sum + width
+    sum += width
   }
   return sum
 }
@@ -76,7 +82,7 @@ function widthOfString (text, font) {
  * @param {number} positionX - X coordinate of found text box
  * @param {number} width - width of the found text box
  * @param {number} textHeight - height of the text
- * @param {number} pageWidth - widht of the page
+ * @param {number} pageWidth - width of the page
  * @param {PDFJsLib.Font} font - font of the found text box
  *
  * @returns {array} - Returns array with field boxWidth and boxX parameters, where highlight shall be set
@@ -89,7 +95,9 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
 
   switch (highlight) {
     case 'term': {
-      const searchPattern = new RegExp(searchTerm, searchInsensitive ? 'gi' : 'g')
+      // use flags g and/or i to find multiple occurrences
+      const flags = searchInsensitive ? 'gi' : 'g'
+      const searchPattern = new RegExp(searchTerm, flags)
 
       let searchMatch = searchPattern.exec(textBoxStr)
 
@@ -103,16 +111,11 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
         const textWithin = textBoxStr.substring(idxStart, idxEnd)
         const textAfter = textBoxStr.substring(idxEnd)
 
-        let widthBefore
-        let widthWithin
-        let widthAfter
+        let widthBefore = widthOfString(textBefore, font)
+        let widthWithin = widthOfString(textWithin, font)
+        let widthAfter = widthOfString(textAfter, font)
 
-        // Compute width based on font of the pdf
-        widthBefore = widthOfString(textBefore, font)
-        widthWithin = widthOfString(textWithin, font)
-        widthAfter = widthOfString(textAfter, font)
-
-        // If this has failed, compute based on default font
+        // If this has failed, compute based on provided fallback font
         if (widthBefore === null || widthWithin === null || widthAfter === null) {
           widthBefore = pdfFontWidth.widthOfTextAtSize(textBefore, textHeight)
           widthWithin = pdfFontWidth.widthOfTextAtSize(textWithin, textHeight)
@@ -120,10 +123,12 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
         }
 
         // Normalize text-box width based on actual found text box
-        const scaleFactor = width / (widthBefore + widthWithin + widthAfter)
-        widthBefore = widthBefore * scaleFactor
-        widthWithin = widthWithin * scaleFactor
-        widthAfter = widthAfter * scaleFactor
+        const denom = (widthBefore + widthWithin + widthAfter)
+        const scaleFactor = denom > 0 ? (width / denom) : 1
+
+        widthBefore *= scaleFactor
+        widthWithin *= scaleFactor
+        widthAfter *= scaleFactor
 
         boxWidth = widthWithin
         boxX = positionX + widthBefore
@@ -134,11 +139,11 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
       break
     }
     case 'box':
-    // Highlight the full text box wihtin the search term was found
+      // Highlight the full text box within the search term was found
       highlightPos.push({ boxWidth: width, boxX: positionX })
       break
     case 'row':
-    // Highlight the full row of the page
+      // Highlight the full row of the page
       highlightPos.push({ boxWidth: pageWidth, boxX: 0 })
       break
     default:
@@ -153,7 +158,7 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
  *
  * @async
  * @param {pdfjslib.PDFDocument} pdfJsDoc - object of the pdfjslib representing the PDF document to search in
- * @param {number} pageIdx - page number within the PDF document to search in
+ * @param {number} pageIdx - page number within the PDF document to search in (1-based)
  * @param {PDFLib.PDFDocument} pdfDoc - object of the PDFLib representing the PDF document to add highlights as rectangles
  * @param {string} searchTerm - String to search for
  * @param {boolean} searchInsensitive - Search case-insensitive
@@ -170,32 +175,39 @@ async function searchPage (pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensit
   // eslint-disable-next-line no-unused-vars
   const opList = await page.getOperatorList()
 
-  if (!searchRegExp) {
-    // escape regexp expresions
-    searchTerm = searchTerm.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')
-  }
+  // if not using regex, escaping of meta chars was done earlier in caller
   const searchPattern = new RegExp(searchTerm, searchInsensitive ? 'i' : '')
 
-  content.items.forEach(async function (textItem) {
-    if (searchPattern.test(textItem.str)) {
-      // get the font details
-      const font = await page.commonObjs.get(textItem.fontName)
+  // Use for..of so we can await inside loop and ensure all drawing finished
+  for (const textItem of content.items) {
+    if (!searchPattern.test(textItem.str)) continue
 
-      const highlightPos = computeHighlightPosition(searchTerm, searchInsensitive, textItem.str, highlight,
-        pdfFontWidth, textItem.transform[4], textItem.width, textItem.height, pdfDoc.getPage(pageIdx - 1).getHeight(), font)
-
-      for (let i = 0; i < highlightPos.length; i++) {
-        pdfDoc.getPage(pageIdx - 1).drawRectangle({
-          x: highlightPos[i].boxX,
-          y: textItem.transform[5],
-          height: textItem.height,
-          width: highlightPos[i].boxWidth,
-          color: rgbValue,
-          blendMode: window.PDFLib.BlendMode.Darken
-        })
-      }
+    // get the font details (defensive)
+    let font = null
+    try {
+      font = await page.commonObjs.get(textItem.fontName)
+    } catch (e) {
+      // continue if font info is not available; fallback logic below will handle widths
+      font = null
     }
-  })
+
+    const pageObj = pdfDoc.getPage(pageIdx - 1)
+    const pageHeight = pageObj.getHeight()
+
+    const highlightPos = computeHighlightPosition(searchTerm, searchInsensitive, textItem.str, highlight,
+      pdfFontWidth, textItem.transform[4], textItem.width, textItem.height, pageHeight, font)
+
+    for (let i = 0; i < highlightPos.length; i++) {
+      pdfDoc.getPage(pageIdx - 1).drawRectangle({
+        x: highlightPos[i].boxX,
+        y: textItem.transform[5],
+        height: textItem.height,
+        width: highlightPos[i].boxWidth,
+        color: rgbValue,
+        blendMode: window.PDFLib.BlendMode.Darken
+      })
+    }
+  }
 }
 
 /**
@@ -216,16 +228,16 @@ async function readHostedFile (fileName) {
 /**
  * Read file provided as upload by the client
  *
- * @param {object} fileName - object as provided from DOM <input type="file"> element
- * @return {string} - base64 encoded string representing the file
+ * @param {object} inputFile - object as provided from DOM <input type="file"> element
+ * @return {ArrayBuffer} - ArrayBuffer representing the file
  */
 async function readUploadFile (inputFile) {
   if (!inputFile) return
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result)
-    // reader.readAsDataURL(inputFile)
+    reader.onerror = () => reject(new Error('Failed to read uploaded file'))
     reader.readAsArrayBuffer(inputFile)
   })
 }
@@ -242,14 +254,14 @@ function setCookie (cname, cvalue, exdays) {
   const d = new Date()
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000))
   const expires = 'expires=' + d.toUTCString()
-  document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/; SameSite=Lax'
+  document.cookie = cname + '=' + encodeURIComponent(cvalue) + ';' + expires + ';path=/; SameSite=Lax'
 }
 
 /**
  * Read a cookie value from the browser
  *
  * @param {string} cname - name of the cookie parameter
- * @return {string} - value of the cookie parameter, null if not found
+ * @return {string|null} - value of the cookie parameter, null if not found
  */
 function getCookie (cname) {
   const name = cname + '='
@@ -268,9 +280,7 @@ function getCookie (cname) {
 }
 
 /**
- * Set all GUI elements in the browser to default values
- *
- * @return {void}
+ * GUI helpers
  */
 function guiReset () {
   document.getElementById('generate').removeAttribute('disabled')
@@ -285,21 +295,11 @@ function guiReset () {
   document.getElementById('logdetails').replaceChildren()
 }
 
-/**
- * Set GUI elements in the browser while the PDF is processed (deactivation of elements and processing indication)
- *
- * @return {void}
- */
 function guiProcessing () {
   document.getElementById('generate').setAttribute('disabled', 'true')
   document.getElementById('log').appendChild(document.createTextNode('processing ...'))
 }
 
-/**
- * Set GUI elements in the browser when the PDF is processed (make result elements visible and elements active)
- *
- * @return {void}
- */
 function guiProcessed () {
   document.getElementById('generate').removeAttribute('disabled')
   document.getElementById('link').setAttribute('class', 'active')
@@ -308,10 +308,15 @@ function guiProcessed () {
 }
 
 /**
+ * Keep track of last ObjectURL to revoke and avoid leaking memory
+ */
+let lastObjectUrl = null
+
+/**
  * Call back function of the generate button in the GUI
  * The function will perform the following steps
  * - Load the PDF document by {@link readHostedFile} or {@link readUploadFile}
- * - Search for the term and highlight the found searc term by {@link searchPage}
+ * - Search for the term and highlight the found search term by {@link searchPage}
  * - Show the result
  *
  * @return {void}
@@ -319,7 +324,8 @@ function guiProcessed () {
 async function generateOutputPdf () {
   try {
     const pdfjsLib = window.pdfjsLib
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.mjs'
+    if (!pdfjsLib) throw new Error('pdfjsLib not found on window; ensure the non-module pdf.js build is loaded and exposes window.pdfjsLib')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist/build/pdf.worker.js'
 
     // Set GUI to default state
     guiReset()
@@ -355,14 +361,12 @@ async function generateOutputPdf () {
 
     // Store parameters from HTML form in cookies for future page visits
     setCookie('searchTerm', searchTerm, 400)
-    setCookie('searchInsensitive', searchInsensitive, 400)
-    setCookie('searchRegExp', searchRegExp, 400)
+    setCookie('searchInsensitive', String(searchInsensitive), 400)
+    setCookie('searchRegExp', String(searchRegExp), 400)
     setCookie('highlight', highlight, 400)
     setCookie('rgbValue', document.getElementById('color').value, 400)
 
     // Load and read the provided input file
-    // and create name for output file
-    // If empty, use default example
     let fileContent
     let outputFileName
     if (inputFile) {
@@ -378,28 +382,33 @@ async function generateOutputPdf () {
     const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
 
     // Load the document again via PDF.js which supports search features within the PDF
-    // The fontExtraProperties are needed to have access to the witdth property of the font
-    const loadingTask = await pdfjsLib.getDocument({ data: fileContent, fontExtraProperties: true })
+    // The fontExtraProperties are needed to have access to the width property of the font
+    const loadingTask = pdfjsLib.getDocument({ data: fileContent, fontExtraProperties: true })
+    const pdfJsDoc = await loadingTask.promise
 
     // Create a new document for purpose of text width computations
     const pdfDocWidth = await window.PDFLib.PDFDocument.create()
     const pdfFontWidth = await pdfDocWidth.embedFont(window.PDFLib.StandardFonts.TimesRoman)
 
     // Search within each page and highlight the found positions
-    await loadingTask.promise.then(async function (pdfJsDoc) {
-      for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
-        await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensitive, searchRegExp, rgbValue, highlight, pdfFontWidth)
-      }
-    })
+    for (let pageIdx = 1; pageIdx <= pdfJsDoc.numPages; pageIdx++) {
+      await searchPage(pdfJsDoc, pageIdx, pdfDoc, searchTerm, searchInsensitive, searchRegExp, rgbValue, highlight, pdfFontWidth)
+    }
 
     // Create PDF as blob binary object to provide to browser
     const downloadPdf = await pdfDoc.save()
-    const binaryData = []
-    binaryData.push(downloadPdf)
-    const objectURL = URL.createObjectURL(new Blob(binaryData, { type: 'application/pdf' }))
+    const blob = new Blob([downloadPdf], { type: 'application/pdf' })
+    const objectURL = URL.createObjectURL(blob)
+
+    // Revoke previous object URL to avoid memory leak
+    if (lastObjectUrl) {
+      try { URL.revokeObjectURL(lastObjectUrl) } catch (e) { /* ignore */ }
+    }
+    lastObjectUrl = objectURL
 
     // Show in download link
     const link = document.getElementById('link')
+    link.replaceChildren()
     link.download = outputFileName
     link.appendChild(document.createTextNode(outputFileName))
     link.href = objectURL
@@ -424,7 +433,7 @@ async function generateOutputPdf () {
 
     // Show error stack
     document.getElementById('logdetails').replaceChildren()
-    document.getElementById('logdetails').appendChild(document.createTextNode(error.stack))
+    document.getElementById('logdetails').appendChild(document.createTextNode(error.stack || String(error)))
   }
 }
 

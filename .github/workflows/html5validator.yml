@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Checks HTML5
       uses: Cyb3r-Jak3/html5validator-action@master
@@ -23,7 +23,7 @@ jobs:
 
     - name: Upload analysis results to GitHub actions log
       if: success() || failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HTML5validator.log
         path: log.log

@@ -25,12 +25,12 @@ function convertToRgb (str) {
 }
 
 /**
- * Computes with of character based on provided font class
+ * Computes width of character based on provided font class
  *
  * @param {string} character - Character to get widths for
  * @param {PDFJsLib.Font} font - font of the found text box
  *
- * @returns {number} Width of character width of given string, null if not found
+ * @returns {number|null} Width of character, null if not found
  */
 function widthOfChar (character, font) {
   for (let idxMap = 0; idxMap < font.toUnicode._map.length; idxMap++) {
@@ -44,12 +44,12 @@ function widthOfChar (character, font) {
 }
 
 /**
- * Computes with of text based on provided font class
+ * Computes width of text based on provided font class
  *
  * @param {string} text - Text to compute widths for
  * @param {PDFJsLib.Font} font - font of the found text box
  *
- * @returns {number} Sum of character width of given string, null if characters not found
+ * @returns {number|null} Sum of character widths, null if any char not found
  */
 function widthOfString (text, font) {
   let sum = 0
@@ -76,7 +76,7 @@ function widthOfString (text, font) {
  * @param {number} positionX - X coordinate of found text box
  * @param {number} width - width of the found text box
  * @param {number} textHeight - height of the text
- * @param {number} pageWidth - widht of the page
+ * @param {number} pageWidth - width of the page
  * @param {PDFJsLib.Font} font - font of the found text box
  *
  * @returns {array} - Returns array with field boxWidth and boxX parameters, where highlight shall be set
@@ -134,11 +134,11 @@ function computeHighlightPosition (searchTerm, searchInsensitive, textBoxStr, hi
       break
     }
     case 'box':
-    // Highlight the full text box wihtin the search term was found
+      // Highlight the full text box within the search term was found
       highlightPos.push({ boxWidth: width, boxX: positionX })
       break
     case 'row':
-    // Highlight the full row of the page
+      // Highlight the full row of the page
       highlightPos.push({ boxWidth: pageWidth, boxX: 0 })
       break
     default:
@@ -311,7 +311,7 @@ function guiProcessed () {
  * Call back function of the generate button in the GUI
  * The function will perform the following steps
  * - Load the PDF document by {@link readHostedFile} or {@link readUploadFile}
- * - Search for the term and highlight the found searc term by {@link searchPage}
+ * - Search for the term and highlight the found search term by {@link searchPage}
  * - Show the result
  *
  * @return {void}
@@ -378,7 +378,7 @@ async function generateOutputPdf () {
     const pdfDoc = await window.PDFLib.PDFDocument.load(fileContent)
 
     // Load the document again via PDF.js which supports search features within the PDF
-    // The fontExtraProperties are needed to have access to the witdth property of the font
+    // The fontExtraProperties are needed to have access to the width property of the font
     const loadingTask = await pdfjsLib.getDocument({ data: fileContent, fontExtraProperties: true })
 
     // Create a new document for purpose of text width computations
